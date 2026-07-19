@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Saldo ChatGPT Work</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="logo" aria-hidden="true">◎</div>
+        <div>
+          <h1>Saldo ChatGPT Work</h1>
+          <p>Limites compartilhados com o Codex</p>
+        </div>
+      </header>
+
+      <section id="loading" class="notice">Consultando o saldo…</section>
+      <section id="error" class="notice error" hidden></section>
+
+      <section id="usage" hidden>
+        <div id="limits" class="limits"></div>
+        <div id="extras" class="extras" hidden>
+          <h2>Outros limites</h2>
+          <div id="extraLimits" class="limits compact"></div>
+        </div>
+      </section>
+
+      <footer>
+        <span id="updatedAt">—</span>
+        <button id="refresh" type="button">Atualizar</button>
+      </footer>
+
+      <p class="footnote">
+        Não representa os limites de conversa comum, imagens, voz ou pesquisa profunda.
+      </p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
