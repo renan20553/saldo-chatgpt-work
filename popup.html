@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Saldo ChatGPT Work</title>
+    <script src="theme.js"></script>
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
@@ -21,6 +22,11 @@
 
       <section id="usage" hidden>
         <div id="limits" class="limits"></div>
+        <section id="resetCredits" class="reset-credits" hidden>
+          <h2>Resets e créditos</h2>
+          <dl id="resetCreditValues"></dl>
+          <p>A disponibilidade depende da conta e do workspace.</p>
+        </section>
         <div id="extras" class="extras" hidden>
           <h2>Outros limites</h2>
           <div id="extraLimits" class="limits compact"></div>
@@ -29,6 +35,14 @@
 
       <footer>
         <span id="updatedAt">—</span>
+        <label class="theme-control" for="theme">
+          <span>Tema</span>
+          <select id="theme" aria-label="Tema do popup">
+            <option value="auto">Automático</option>
+            <option value="light">Claro</option>
+            <option value="dark">Escuro</option>
+          </select>
+        </label>
         <button id="refresh" type="button">Atualizar</button>
       </footer>
 

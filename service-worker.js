@@ -110,9 +110,24 @@ function parseUsage(raw) {
     primary: parseWindow(rateLimit.primary_window, "Janela de 5 horas"),
     secondary: parseWindow(rateLimit.secondary_window, "Limite semanal"),
     additional: parseAdditionalLimits(raw),
-    availableResets: readFiniteNumber(raw?.rate_limit_reset_credits?.available_count),
+    resetCredits: parseResetCredits(raw?.rate_limit_reset_credits),
     updatedAt: Date.now(),
   };
+}
+
+function parseResetCredits(value) {
+  if (!isObject(value)) return null;
+
+  const result = {
+    available: firstFiniteNumber(value.available_count, value.credits_available),
+    maximum: firstFiniteNumber(value.maximum_count, value.max_count, value.total_count),
+    used: firstFiniteNumber(value.used_count, value.credits_used),
+    resetsAvailable: firstFiniteNumber(value.resets_available, value.available_resets),
+    enabled: firstBoolean(value.enabled, value.is_enabled),
+    unlimited: firstBoolean(value.unlimited, value.is_unlimited),
+  };
+
+  return Object.values(result).some((entry) => entry !== null) ? result : null;
 }
 
 function parseWindow(value, label) {
@@ -205,8 +220,10 @@ async function updateBadge(state) {
   const rounded = Math.round(remaining);
   const color = remaining <= 10 ? "#d92d20" : remaining <= 25 ? "#d97706" : "#0f8a68";
 
-  await chrome.action.setBadgeText({ text: `${rounded}%` });
+  const badgeText = rounded > 99 ? "99+" : String(rounded);
+  await chrome.action.setBadgeText({ text: badgeText });
   await chrome.action.setBadgeBackgroundColor({ color });
+  await setBadgeTextWhite();
   await chrome.action.setTitle({
     title: `${rounded}% restante no limite mais próximo do ChatGPT Work/Codex`,
   });
@@ -215,7 +232,14 @@ async function updateBadge(state) {
 async function showBadgeError() {
   await chrome.action.setBadgeText({ text: "!" });
   await chrome.action.setBadgeBackgroundColor({ color: "#6b7280" });
+  await setBadgeTextWhite();
   await chrome.action.setTitle({ title: "Não foi possível consultar o saldo do ChatGPT Work" });
+}
+
+async function setBadgeTextWhite() {
+  if (typeof chrome.action.setBadgeTextColor === "function") {
+    await chrome.action.setBadgeTextColor({ color: "#ffffff" });
+  }
 }
 
 function isObject(value) {
@@ -236,6 +260,21 @@ function firstString(...values) {
 
 function readFiniteNumber(value) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function firstFiniteNumber(...values) {
+  for (const value of values) {
+    const number = readFiniteNumber(value);
+    if (number !== null) return number;
+  }
+  return null;
+}
+
+function firstBoolean(...values) {
+  for (const value of values) {
+    if (typeof value === "boolean") return value;
+  }
+  return null;
 }
 
 function clamp(value, minimum, maximum) {

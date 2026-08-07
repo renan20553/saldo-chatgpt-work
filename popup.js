@@ -4,6 +4,8 @@ const usageBox = document.querySelector("#usage");
 const limitsBox = document.querySelector("#limits");
 const extrasBox = document.querySelector("#extras");
 const extraLimitsBox = document.querySelector("#extraLimits");
+const resetCreditsBox = document.querySelector("#resetCredits");
+const resetCreditValues = document.querySelector("#resetCreditValues");
 const updatedAt = document.querySelector("#updatedAt");
 const refreshButton = document.querySelector("#refresh");
 
@@ -81,6 +83,7 @@ function renderState(state) {
   usageBox.hidden = false;
   limitsBox.replaceChildren();
   extraLimitsBox.replaceChildren();
+  renderResetCredits(state.resetCredits);
 
   const mainLimits = [state.primary, state.secondary].filter(Boolean);
   for (const limit of mainLimits) limitsBox.append(createLimitCard(limit));
@@ -99,6 +102,41 @@ function renderState(state) {
     minute: "2-digit",
     second: "2-digit",
   }).format(new Date(state.updatedAt))}`;
+}
+
+function renderResetCredits(credits) {
+  resetCreditValues.replaceChildren();
+  if (!credits || typeof credits !== "object") {
+    resetCreditsBox.hidden = true;
+    return;
+  }
+
+  const rows = [];
+  if (Number.isFinite(credits.resetsAvailable)) {
+    rows.push(["Resets disponíveis", credits.resetsAvailable]);
+  }
+  if (Number.isFinite(credits.available)) {
+    const suffix = Number.isFinite(credits.maximum) ? ` de ${credits.maximum}` : "";
+    rows.push(["Créditos restantes", `${credits.available}${suffix}`]);
+  } else if (Number.isFinite(credits.maximum)) {
+    rows.push(["Créditos máximos", credits.maximum]);
+  }
+  if (Number.isFinite(credits.used)) rows.push(["Créditos utilizados", credits.used]);
+  if (typeof credits.unlimited === "boolean") {
+    rows.push(["Créditos ilimitados", credits.unlimited ? "Sim" : "Não"]);
+  }
+  if (typeof credits.enabled === "boolean") {
+    rows.push(["Recurso habilitado", credits.enabled ? "Sim" : "Não"]);
+  }
+
+  for (const [label, value] of rows) {
+    const term = document.createElement("dt");
+    const description = document.createElement("dd");
+    term.textContent = label;
+    description.textContent = String(value);
+    resetCreditValues.append(term, description);
+  }
+  resetCreditsBox.hidden = rows.length === 0;
 }
 
 function renderError(message) {
