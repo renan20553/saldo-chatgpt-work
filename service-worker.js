@@ -1,251 +1,151 @@
-const SESSION_URL = "https://chatgpt.com/api/auth/session";
-const USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
-const STORAGE_KEY = "chatgptWorkUsage";
-const ALARM_NAME = "refreshChatGptWorkUsage";
-const REFRESH_MINUTES = 5;
-const MAX_CACHE_AGE_MS = 2 * 60 * 1000;
+import { createCache } from './lib/cache.js';
+import { createController } from './lib/controller.js';
+import { makeClient } from './lib/client.js';
+import { createBadge } from './lib/badge.js';
+import { openChatGPT } from './lib/links.js';
 
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.alarms.create(ALARM_NAME, { periodInMinutes: REFRESH_MINUTES });
-  refreshUsage().catch(() => undefined);
-});
+const PRIVATE = chrome.extension.inIncognitoContext === true;
+const PERIODIC = PRIVATE ? 'usage.private.periodic' : 'usage.normal.periodic';
+const RESET = PRIVATE ? 'usage.private.reset' : 'usage.normal.reset';
+const COOLDOWN = PRIVATE ? 'usage.private.cooldown' : 'usage.normal.cooldown';
+const ports = new Set();
+let privateClosed = false;
+let restoredCooldown = null;
+let privateResetTimer = null;
+let preferences = { theme: 'system', iconBadge: false };
+const cache = createCache({ privateContext: PRIVATE, storage: PRIVATE ? undefined : chrome.storage.local });
+const paintBadge = createBadge(chrome, PRIVATE);
+let scheduleQueue = Promise.resolve();
+let stateVersion = 0;
+const controller = createController({ client: makeClient(), cache, privateContext: PRIVATE, onChange: state => {
+  if (['temporary', 'schema'].includes(state.error?.code) && state.retryAt) restoredCooldown = Math.max(restoredCooldown || 0, state.retryAt);
+  const message = { type: 'STATE', state, preferences };
+  for (const port of ports) { try { port.postMessage(message); } catch { ports.delete(port); } }
+  void paintBadge(state, preferences.iconBadge).catch(() => {});
+  const version = ++stateVersion;
+  scheduleQueue = scheduleQueue.catch(() => {}).then(() => version === stateVersion ? schedule(state) : undefined).catch(() => {});
+}});
 
-chrome.runtime.onStartup.addListener(() => {
-  chrome.alarms.create(ALARM_NAME, { periodInMinutes: REFRESH_MINUTES });
-  refreshUsage().catch(() => undefined);
-});
-
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === ALARM_NAME) refreshUsage().catch(() => undefined);
-});
-
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type === "REFRESH_USAGE") {
-    refreshUsage().then(sendResponse);
-    return true;
+async function schedule(state) {
+  if (privateClosed) return;
+  const alarm = await chrome.alarms.get(PERIODIC);
+  if (privateClosed) return;
+  if (!alarm) await chrome.alarms.create(PERIODIC, { periodInMinutes: 5 });
+  if (state.refreshing) return;
+  const times = [state.data?.primary, state.data?.secondary, ...(state.data?.additional || [])].map(w => w?.resetsAt).filter(t => Number.isFinite(t));
+  if (PRIVATE) {
+    clearTimeout(privateResetTimer);
+    privateResetTimer = null;
+    if (times.length) {
+      const delay = Math.max(60000, Math.min(...times) - Date.now(), (restoredCooldown || 0) - Date.now());
+      privateResetTimer = setTimeout(() => { void safeRefresh(); }, Math.min(delay, 2147483647));
+    }
   }
-
-  if (message?.type === "GET_USAGE") {
-    getUsage().then(sendResponse);
-    return true;
-  }
-
-  return false;
-});
-
-async function getUsage() {
-  const saved = await chrome.storage.local.get(STORAGE_KEY);
-  const state = saved[STORAGE_KEY];
-
-  if (state?.updatedAt && Date.now() - state.updatedAt < MAX_CACHE_AGE_MS) {
-    return { ok: true, state };
-  }
-
-  return refreshUsage();
+  // Alarms may survive worker suspension. Persist only operational backoff, never private usage/reset dates.
+  if (restoredCooldown > Date.now()) await chrome.alarms.create(COOLDOWN, { when: restoredCooldown });
+  else { restoredCooldown = null; await chrome.alarms.clear(COOLDOWN); }
+  const target = PRIVATE ? null : (state.retryAt || (times.length ? Math.min(...times) : null));
+  if (target) await chrome.alarms.create(RESET, { when: Math.max(Date.now() + 60000, target) });
+  else await chrome.alarms.clear(RESET);
 }
 
-async function refreshUsage() {
+async function initialize() {
+  await cache.migrate();
+  try { restoredCooldown = (await chrome.alarms.get(COOLDOWN))?.scheduledTime || null; } catch { /* Recheck source after resumption if scheduler is unavailable. */ }
   try {
-    const session = await fetchJson(SESSION_URL, { credentials: "include" });
-    const accessToken = readString(session.accessToken);
-
-    if (!accessToken) {
-      throw new Error(
-        "A sessão do ChatGPT não foi encontrada. Abra chatgpt.com, entre na conta e tente novamente.",
-      );
-    }
-
-    const headers = {
-      Accept: "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    };
-    const accountId = findAccountId(session);
-    if (accountId) headers["ChatGPT-Account-Id"] = accountId;
-
-    const rawUsage = await fetchJson(USAGE_URL, {
-      credentials: "include",
-      headers,
-    });
-    const state = parseUsage(rawUsage);
-
-    if (!state.primary && !state.secondary) {
-      throw new Error(
-        "A conta não retornou limites do ChatGPT Work/Codex. Esse painel pode não estar disponível no seu plano ou espaço de trabalho.",
-      );
-    }
-
-    await chrome.storage.local.set({ [STORAGE_KEY]: state });
-    await updateBadge(state);
-    return { ok: true, state };
-  } catch (error) {
-    await showBadgeError();
-    return {
-      ok: false,
-      message: error?.message || "Não foi possível consultar o uso do ChatGPT.",
-    };
-  }
+    const p = (await chrome.storage.local.get('preferences')).preferences;
+    preferences = { theme: ['system', 'light', 'dark'].includes(p?.theme) ? p.theme : 'system', iconBadge: p?.iconBadge === true };
+  } catch { /* Preferences are optional. Private usage is never read from storage. */ }
+  const snapshot = controller.snapshot();
+  if (restoredCooldown > Date.now()) snapshot.retryAt = restoredCooldown;
+  await schedule(snapshot);
+  await paintBadge(controller.snapshot(), preferences.iconBadge);
 }
-
-async function fetchJson(url, init = {}) {
-  const response = await fetch(url, {
-    ...init,
-    headers: { Accept: "application/json", ...(init.headers || {}) },
-  });
-
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new Error(
-        "O ChatGPT recusou a consulta. Atualize a página, confirme a conta ativa e tente novamente.",
-      );
-    }
-    throw new Error(`O ChatGPT retornou o erro ${response.status}.`);
+const ready = initialize().catch(() => {});
+async function refresh() {
+  await ready;
+  if (privateClosed) return controller.snapshot();
+  if (restoredCooldown > Date.now()) {
+    const waiting = { ...controller.snapshot(), retryAt: restoredCooldown, error: { code: 'temporary', message: 'Aguardando o intervalo solicitado pelo ChatGPT antes de consultar novamente.' } };
+    await paintBadge(waiting, preferences.iconBadge).catch(() => {});
+    return waiting;
   }
-
-  return response.json();
+  return controller.refresh();
 }
+const safeRefresh = () => refresh().catch(() => controller.snapshot());
 
-function parseUsage(raw) {
-  const rateLimit = isObject(raw?.rate_limit) ? raw.rate_limit : {};
-  return {
-    primary: parseWindow(rateLimit.primary_window, "Janela de 5 horas"),
-    secondary: parseWindow(rateLimit.secondary_window, "Limite semanal"),
-    additional: parseAdditionalLimits(raw),
-    availableResets: readFiniteNumber(raw?.rate_limit_reset_credits?.available_count),
-    updatedAt: Date.now(),
+chrome.runtime.onInstalled.addListener(() => { void safeRefresh(); });
+chrome.runtime.onStartup.addListener(() => { void safeRefresh(); });
+chrome.alarms.onAlarm.addListener(alarm => { if ([PERIODIC, RESET, COOLDOWN].includes(alarm.name)) void safeRefresh(); });
+chrome.runtime.onConnect.addListener(port => {
+  if (port.name !== 'usage-popup' || port.sender?.id !== chrome.runtime.id || port.sender?.url !== chrome.runtime.getURL('popup.html')) return;
+  ports.add(port);
+  privateClosed = false;
+  port.onDisconnect.addListener(() => ports.delete(port));
+  void safeRefresh(); // Works on first private popup, without a normal browser window.
+});
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (sender.id !== chrome.runtime.id || sender.url !== chrome.runtime.getURL('popup.html') || message?.private !== PRIVATE) return false;
+  const run = async () => {
+    await ready;
+    switch (message.type) {
+      case 'GET_USAGE': case 'REFRESH_USAGE': privateClosed = false; return { ok: true, state: await refresh(), preferences };
+      case 'SELECT_ACCOUNT': return { ok: true, state: restoredCooldown > Date.now() ? await refresh() : await controller.select(message.id), preferences };
+      case 'CLEAR_CACHE': await controller.invalidate({ message: 'Dados apagados. Atualize para consultar a sessão novamente.' }); return { ok: true, state: controller.snapshot(), preferences };
+      case 'OPEN_CHATGPT': await openChatGPT(chrome, PRIVATE, message.destination, message.windowId); return { ok: true };
+      case 'SET_PREFERENCES': {
+        preferences = { theme: ['system', 'light', 'dark'].includes(message.theme) ? message.theme : preferences.theme, iconBadge: typeof message.iconBadge === 'boolean' ? message.iconBadge : preferences.iconBadge };
+        // In private browsing preference edits last only for this worker lifetime.
+        if (!PRIVATE) {
+          try { await chrome.storage.local.set({ preferences }); }
+          catch { return { ok: false, message: 'Não foi possível salvar as preferências.' }; }
+        }
+        await paintBadge(controller.snapshot(), preferences.iconBadge);
+        return { ok: true, preferences };
+      }
+      default: return { ok: false, message: 'Solicitação não reconhecida.' };
+    }
   };
-}
+  void run().then(sendResponse).catch(() => sendResponse({ ok: false, message: 'Não foi possível concluir a operação. Abra o painel novamente.' }));
+  return true;
+});
 
-function parseWindow(value, label) {
-  if (!isObject(value)) return null;
-
-  const usedPercent = clamp(readFiniteNumber(value.used_percent) ?? 0, 0, 100);
-  return {
-    label,
-    usedPercent,
-    remainingPercent: clamp(100 - usedPercent, 0, 100),
-    resetsAt: resetTimestamp(value),
-  };
-}
-
-function parseAdditionalLimits(raw) {
-  const output = [];
-  const additional = raw?.additional_rate_limits;
-
-  if (Array.isArray(additional)) {
-    additional.forEach((entry, index) => {
-      if (!isObject(entry)) return;
-      const label = humanize(
-        readString(entry.model) ||
-          readString(entry.name) ||
-          readString(entry.label) ||
-          `Limite ${index + 1}`,
-      );
-      appendEntryWindows(output, entry, label);
-    });
-  } else if (isObject(additional)) {
-    for (const [name, entry] of Object.entries(additional)) {
-      if (isObject(entry)) appendEntryWindows(output, entry, humanize(name));
-    }
+chrome.tabs.onActivated.addListener(() => {
+  void ready.then(async () => {
+    await paintBadge(controller.snapshot(), preferences.iconBadge);
+    const state = controller.snapshot();
+    if (!state.lastAttempt || Date.now() - state.lastAttempt > 30000) await refresh();
+  }).catch(() => {});
+});
+chrome.tabs.onCreated.addListener(tab => { if (Boolean(tab.incognito) === PRIVATE) void ready.then(() => paintBadge(controller.snapshot(), preferences.iconBadge)).catch(() => {}); });
+chrome.tabs.onUpdated.addListener((_id, change, tab) => {
+  if (Boolean(tab.incognito) !== PRIVATE) return;
+  // chatgpt.com host permission grants this URL; no tabs/cookies/scripting permission.
+  if (tab.url?.startsWith('https://chatgpt.com/') && (change.status === 'loading' || change.url)) {
+    void controller.invalidate({ message: 'A sessão do ChatGPT pode ter mudado. Verificando novamente…' }).then(safeRefresh).catch(() => {});
   }
-
-  if (isObject(raw?.code_review_rate_limit)) {
-    appendEntryWindows(output, raw.code_review_rate_limit, "Revisão de código");
-  }
-
-  return output;
-}
-
-function appendEntryWindows(output, entry, label) {
-  const primary = parseWindow(entry.primary_window, `${label} · 5 horas`);
-  const secondary = parseWindow(entry.secondary_window, `${label} · semanal`);
-  if (primary) output.push(primary);
-  if (secondary) output.push(secondary);
-}
-
-function resetTimestamp(value) {
-  const epochSeconds = readFiniteNumber(value.reset_at);
-  if (epochSeconds !== null) return new Date(epochSeconds * 1000).toISOString();
-
-  const seconds = readFiniteNumber(value.reset_after_seconds);
-  if (seconds !== null) return new Date(Date.now() + seconds * 1000).toISOString();
-  return null;
-}
-
-function findAccountId(session) {
-  const direct = firstString(
-    session?.account_id,
-    session?.accountId,
-    session?.active_account_id,
-    session?.activeAccountId,
-  );
-  if (direct) return direct;
-
-  const fromUser = firstString(
-    session?.user?.account_id,
-    session?.user?.accountId,
-    session?.user?.default_account_id,
-  );
-  if (fromUser) return fromUser;
-
-  if (Array.isArray(session?.accounts)) {
-    for (const account of session.accounts) {
-      const id = firstString(account?.account_id, account?.id, account?.uuid);
-      if (id) return id;
-    }
-  }
-
-  return null;
-}
-
-async function updateBadge(state) {
-  const mainLimits = [state.primary, state.secondary].filter(Boolean);
-  if (mainLimits.length === 0) return showBadgeError();
-
-  const remaining = Math.min(...mainLimits.map((limit) => limit.remainingPercent));
-  const rounded = Math.round(remaining);
-  const color = remaining <= 10 ? "#d92d20" : remaining <= 25 ? "#d97706" : "#0f8a68";
-
-  await chrome.action.setBadgeText({ text: `${rounded}%` });
-  await chrome.action.setBadgeBackgroundColor({ color });
-  await chrome.action.setTitle({
-    title: `${rounded}% restante no limite mais próximo do ChatGPT Work/Codex`,
-  });
-}
-
-async function showBadgeError() {
-  await chrome.action.setBadgeText({ text: "!" });
-  await chrome.action.setBadgeBackgroundColor({ color: "#6b7280" });
-  await chrome.action.setTitle({ title: "Não foi possível consultar o saldo do ChatGPT Work" });
-}
-
-function isObject(value) {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function readString(value) {
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-function firstString(...values) {
-  for (const value of values) {
-    const text = readString(value);
-    if (text) return text;
-  }
-  return null;
-}
-
-function readFiniteNumber(value) {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function clamp(value, minimum, maximum) {
-  return Math.min(maximum, Math.max(minimum, value));
-}
-
-function humanize(value) {
-  return String(value)
-    .split(/[_-]+/)
-    .filter(Boolean)
-    .map((word) => (word.toLowerCase() === "gpt" ? "GPT" : `${word[0].toUpperCase()}${word.slice(1).toLowerCase()}`))
-    .join(" ");
-}
+});
+chrome.windows.onFocusChanged.addListener(id => {
+  if (id === chrome.windows.WINDOW_ID_NONE) return;
+  void chrome.windows.get(id).then(w => {
+    if (Boolean(w.incognito) !== PRIVATE) return;
+    const state = controller.snapshot();
+    return !state.lastAttempt || Date.now() - state.lastAttempt > 30000 ? refresh() : paintBadge(state, preferences.iconBadge);
+  }).catch(() => {});
+});
+chrome.windows.onRemoved.addListener(() => {
+  if (!PRIVATE) return;
+  void chrome.windows.getAll().then(async windows => {
+    if (windows.some(w => w.incognito)) return;
+    privateClosed = true;
+    clearTimeout(privateResetTimer); privateResetTimer = null;
+    await controller.invalidate();
+    await scheduleQueue;
+    await chrome.alarms.clear(PERIODIC); await chrome.alarms.clear(RESET);
+    await chrome.alarms.clear(COOLDOWN); restoredCooldown = null;
+  }).catch(() => {});
+});
+chrome.windows.onCreated.addListener(window => {
+  if (PRIVATE && window.incognito) { privateClosed = false; void safeRefresh(); }
+});

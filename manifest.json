@@ -1,7 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Saldo ChatGPT Work",
-  "version": "1.0.0",
+  "version": "1.1.0",
+  "incognito": "split",
+  "minimum_chrome_version": "110",
   "description": "Mostra o percentual restante dos limites compartilhados do ChatGPT Work e Codex.",
   "permissions": [
     "alarms",
@@ -11,7 +13,8 @@
     "https://chatgpt.com/*"
   ],
   "background": {
-    "service_worker": "service-worker.js"
+    "service_worker": "service-worker.js",
+    "type": "module"
   },
   "action": {
     "default_title": "Saldo ChatGPT Work",

@@ -1,143 +1,91 @@
-const loadingBox = document.querySelector("#loading");
-const errorBox = document.querySelector("#error");
-const usageBox = document.querySelector("#usage");
-const limitsBox = document.querySelector("#limits");
-const extrasBox = document.querySelector("#extras");
-const extraLimitsBox = document.querySelector("#extraLimits");
-const updatedAt = document.querySelector("#updatedAt");
-const refreshButton = document.querySelector("#refresh");
+import { render, countdown } from './lib/render.js';
+import { expired } from './lib/usage.js';
 
-function toneFor(remaining) {
-  if (remaining <= 10) return "danger";
-  if (remaining <= 25) return "warning";
-  return "good";
+const PRIVATE = chrome.extension.inIncognitoContext === true;
+const EDGE = /Edg\//.test(navigator.userAgent);
+const $ = id => document.getElementById(id);
+let state = null, port = null, requestId = 0, lastExpiryRefresh = 0;
+let preferences = { theme: 'system', iconBadge: false };
+$('context').textContent = PRIVATE ? EDGE ? 'InPrivate' : 'Modo anônimo' : 'Ambiente normal';
+$('privateHelp').hidden = PRIVATE;
+$('retention').textContent = PRIVATE ? 'Dados de uso e alterações de aparência ficam só na memória desta sessão privada.' : 'Cache por conta/workspace com validade de 15 minutos. A limpeza ocorre ao retomar ou apagar os dados. Tokens ficam somente em memória.';
+if (!PRIVATE) {
+  chrome.extension.isAllowedIncognitoAccess(allowed => {
+    $('privatePermission').textContent = chrome.runtime.lastError ? 'Não foi possível verificar a autorização. Confira nos detalhes da extensão.' : allowed ? 'A extensão está autorizada para uso privado.' : 'O uso privado está desativado. Ative manualmente nos detalhes da extensão:';
+  });
 }
-
-function percent(value) {
-  return `${Math.round(value)}%`;
+function showError(message) { $('error').hidden = false; $('error').textContent = message; }
+function applyPreferences(value) {
+  preferences = value || preferences;
+  document.documentElement.dataset.theme = preferences.theme;
+  $('theme').value = preferences.theme; $('iconBadge').checked = preferences.iconBadge;
 }
-
-function formatReset(value) {
-  if (!value) return "Reinício não informado";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Reinício não informado";
-
-  return `Reinicia em ${new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date)}`;
-}
-
-function createLimitCard(limit) {
-  const tone = toneFor(limit.remainingPercent);
-  const card = document.createElement("article");
-  card.className = "limit-card";
-
-  const header = document.createElement("div");
-  header.className = "limit-header";
-
-  const label = document.createElement("span");
-  label.className = "limit-label";
-  label.textContent = limit.label;
-
-  const remaining = document.createElement("strong");
-  remaining.className = `remaining ${tone === "good" ? "" : tone}`.trim();
-  remaining.textContent = `${percent(limit.remainingPercent)} restante`;
-
-  const bar = document.createElement("div");
-  bar.className = "bar";
-  bar.setAttribute("role", "progressbar");
-  bar.setAttribute("aria-label", `${limit.label}: saldo restante`);
-  bar.setAttribute("aria-valuemin", "0");
-  bar.setAttribute("aria-valuemax", "100");
-  bar.setAttribute("aria-valuenow", String(Math.round(limit.remainingPercent)));
-
-  const fill = document.createElement("span");
-  fill.className = tone === "good" ? "" : tone;
-  fill.style.width = `${limit.remainingPercent}%`;
-  bar.append(fill);
-
-  const meta = document.createElement("div");
-  meta.className = "limit-meta";
-
-  const used = document.createElement("span");
-  used.textContent = `${percent(limit.usedPercent)} usado`;
-
-  const reset = document.createElement("span");
-  reset.textContent = formatReset(limit.resetsAt);
-
-  header.append(label, remaining);
-  meta.append(used, reset);
-  card.append(header, bar, meta);
-  return card;
-}
-
-function renderState(state) {
-  loadingBox.hidden = true;
-  errorBox.hidden = true;
-  usageBox.hidden = false;
-  limitsBox.replaceChildren();
-  extraLimitsBox.replaceChildren();
-
-  const mainLimits = [state.primary, state.secondary].filter(Boolean);
-  for (const limit of mainLimits) limitsBox.append(createLimitCard(limit));
-
-  if (state.additional?.length) {
-    extrasBox.hidden = false;
-    for (const limit of state.additional) {
-      extraLimitsBox.append(createLimitCard(limit));
-    }
-  } else {
-    extrasBox.hidden = true;
-  }
-
-  updatedAt.textContent = `Atualizado às ${new Intl.DateTimeFormat("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(new Date(state.updatedAt))}`;
-}
-
-function renderError(message) {
-  loadingBox.hidden = true;
-  usageBox.hidden = true;
-  errorBox.hidden = false;
-  errorBox.textContent = message;
-  updatedAt.textContent = "—";
-}
-
-async function loadUsage(forceRefresh = false) {
-  refreshButton.disabled = true;
-
-  if (forceRefresh) {
-    loadingBox.hidden = false;
-    loadingBox.textContent = "Atualizando o saldo…";
-    errorBox.hidden = true;
-  }
-
+function accept(value) { state = value; render(state); }
+async function send(message) {
+  let timer;
   try {
-    const response = await chrome.runtime.sendMessage({
-      type: forceRefresh ? "REFRESH_USAGE" : "GET_USAGE",
+    const result = await Promise.race([
+      chrome.runtime.sendMessage({ ...message, private: PRIVATE }),
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('message')), 45000); }),
+    ]);
+    if (!result?.ok) throw new Error(result?.message || 'Não foi possível comunicar com a extensão.');
+    return result;
+  } finally { clearTimeout(timer); }
+}
+function connect() {
+  try {
+    port = chrome.runtime.connect({ name: 'usage-popup' });
+    port.onMessage.addListener(message => {
+      if (message.type === 'STATE' && message.state?.private === PRIVATE) { accept(message.state); applyPreferences(message.preferences); }
     });
-
-    if (!response?.ok) {
-      renderError(
-        response?.message ||
-          "Não foi possível consultar o saldo. Confirme que o ChatGPT está conectado neste perfil do Chrome.",
-      );
-      return;
-    }
-
-    renderState(response.state);
-  } catch (error) {
-    renderError(`Falha ao consultar o saldo: ${error.message}`);
+    port.onDisconnect.addListener(() => {
+      void chrome.runtime.lastError;
+      port = null;
+      if (state?.data) accept({ ...state, stale: true, refreshing: false });
+      showError('A conexão com a extensão foi interrompida. Clique em Atualizar para reconectar.');
+    });
+  } catch { showError('Não foi possível iniciar a extensão. Abra o painel novamente.'); }
+}
+async function load(type = 'GET_USAGE', extra = {}) {
+  const id = ++requestId;
+  $('refresh').disabled = true;
+  if (!port) connect();
+  try {
+    const result = await send({ type, ...extra });
+    if (id !== requestId) return;
+    accept(result.state); applyPreferences(result.preferences);
+  } catch {
+    if (id !== requestId) return;
+    if (state) accept({ ...state, stale: Boolean(state.data), refreshing: false });
+    showError('Não foi possível comunicar com a extensão. Tente atualizar ou reabrir o painel.');
   } finally {
-    refreshButton.disabled = false;
+    if (id === requestId) $('refresh').disabled = state?.refreshing || Boolean(state?.retryAt && state.retryAt > Date.now());
   }
 }
-
-refreshButton.addEventListener("click", () => loadUsage(true));
-loadUsage(false);
+$('refresh').addEventListener('click', () => void load('REFRESH_USAGE'));
+$('workspace').addEventListener('change', event => { if (event.target.value) void load('SELECT_ACCOUNT', { id: event.target.value }); });
+$('clear').addEventListener('click', () => void load('CLEAR_CACHE'));
+for (const button of document.querySelectorAll('[data-destination]')) button.addEventListener('click', async () => {
+  try {
+    const window = await chrome.windows.getCurrent();
+    if (Boolean(window.incognito) !== PRIVATE) throw new Error('context');
+    await send({ type: 'OPEN_CHATGPT', destination: button.dataset.destination, windowId: window.id });
+  } catch { showError('Não foi possível abrir o ChatGPT no mesmo ambiente. Reabra o painel e tente novamente.'); }
+});
+async function savePreferences() {
+  try { const result = await send({ type: 'SET_PREFERENCES', theme: $('theme').value, iconBadge: $('iconBadge').checked }); applyPreferences(result.preferences); }
+  catch { applyPreferences(preferences); showError('Não foi possível salvar as preferências.'); }
+}
+$('theme').addEventListener('change', savePreferences);
+$('iconBadge').addEventListener('change', savePreferences);
+setInterval(() => {
+  const now = Date.now();
+  for (const node of document.querySelectorAll('[data-reset-at]')) node.textContent = countdown(Number(node.dataset.resetAt), now);
+  if (state?.retryAt && state.retryAt <= now) { $('retry').textContent = ''; $('refresh').disabled = state.refreshing; }
+  if (state?.data && expired(state.data, now) && !state.refreshing && now - lastExpiryRefresh >= 60000 && (!state.retryAt || state.retryAt <= now)) {
+    lastExpiryRefresh = now;
+    void load('REFRESH_USAGE');
+  }
+}, 1000);
+setInterval(() => { if (!document.hidden && !state?.refreshing) void load(); }, 30000);
+void load();
