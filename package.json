@@ -1,0 +1,7 @@
+{
+  "name": "saldo-chatgpt-work",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --experimental-vm-modules --test tests/*.test.js", "package": "python scripts/package.py" }
+}

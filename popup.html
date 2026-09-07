@@ -1,41 +1,31 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Saldo ChatGPT Work</title>
-    <link rel="stylesheet" href="popup.css" />
-  </head>
-  <body>
-    <main>
-      <header>
-        <div class="logo" aria-hidden="true">◎</div>
-        <div>
-          <h1>Saldo ChatGPT Work</h1>
-          <p>Limites compartilhados com o Codex</p>
-        </div>
-      </header>
-
-      <section id="loading" class="notice">Consultando o saldo…</section>
-      <section id="error" class="notice error" hidden></section>
-
-      <section id="usage" hidden>
-        <div id="limits" class="limits"></div>
-        <div id="extras" class="extras" hidden>
-          <h2>Outros limites</h2>
-          <div id="extraLimits" class="limits compact"></div>
-        </div>
-      </section>
-
-      <footer>
-        <span id="updatedAt">—</span>
-        <button id="refresh" type="button">Atualizar</button>
-      </footer>
-
-      <p class="footnote">
-        Não representa os limites de conversa comum, imagens, voz ou pesquisa profunda.
-      </p>
-    </main>
-    <script src="popup.js"></script>
-  </body>
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Saldo ChatGPT Work</title><link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<main>
+  <header><img src="icons/icon-48.png" width="40" height="40" alt=""><div><h1>Saldo ChatGPT Work</h1><p id="context" class="context">Ambiente normal</p></div></header>
+  <p id="identity" class="identity">Confirmando conta e workspace…</p>
+  <div id="accountChoice" hidden><label for="workspace">Workspace a consultar</label><select id="workspace"><option value="">Escolha um workspace</option></select><p class="meta">A seleção vale para esta consulta da extensão. Confira o workspace também nas páginas de gerenciamento.</p></div>
+  <p id="status" role="status" aria-live="polite" class="notice">Consultando o saldo…</p>
+  <p id="error" role="alert" class="notice error" hidden></p>
+  <p id="storageWarning" class="notice warning" hidden>Não foi possível acessar o cache local. Esta leitura permanece em memória.</p>
+  <p id="retry" class="meta"></p>
+  <section id="usage" hidden>
+    <section><h2>Limites do plano</h2><p id="plan" class="meta"></p><p id="blocked" class="notice error" hidden>Uso bloqueado ou esgotado, conforme informado pelo ChatGPT.</p><div id="limits" class="limits"></div>
+    <p class="explanation">Conforme o plano e os recursos habilitados, estes limites são compartilhados entre Codex, Work, Agentes do Workspace e ChatGPT para Excel. Conversas comuns não estão incluídas. Créditos e controles de gastos do workspace têm regras próprias.</p></section>
+    <section id="extraSection" hidden><h2>Outros limites</h2><div id="extraLimits" class="limits"></div></section>
+    <section class="balance-section"><h2>Créditos do workspace</h2><p id="creditBalance" class="balance"></p><p id="recharge" class="meta"></p><button class="link" data-destination="usage">Ver créditos e recarga no ChatGPT ↗</button><button id="billingLink" class="link" data-destination="billing" hidden>Abrir faturamento do workspace no ChatGPT ↗</button></section>
+    <section class="balance-section"><h2>Redefinições de uso</h2><p id="resetCount" class="balance"></p><ul id="resetDetails"></ul><button class="link" data-destination="usage">Gerenciar e usar redefinições no ChatGPT ↗</button><p class="meta">Créditos de consumo e redefinições de limites são recursos diferentes. As ações são concluídas no ChatGPT.</p></section>
+  </section>
+  <div class="actions"><button id="refresh">Atualizar</button><button class="secondary" data-destination="chat">Abrir ChatGPT ↗</button></div>
+  <div class="timestamps"><p id="lastSuccess">Última leitura válida: não informada</p><p id="lastAttempt">Última tentativa: não informada</p></div>
+  <details id="privateHelp"><summary>Usar no anônimo ou InPrivate</summary><p id="privatePermission"></p><p>Chrome: chrome://extensions → Detalhes → Permitir no modo anônimo.</p><p>Edge: edge://extensions → Detalhes → Permitir no InPrivate.</p><p>A autorização é manual. Entre no ChatGPT também no ambiente privado; ele não usa o login da janela normal.</p></details>
+  <details><summary>Aparência e dados locais</summary><label for="theme">Tema</label><select id="theme"><option value="system">Acompanhar o navegador</option><option value="light">Claro</option><option value="dark">Escuro</option></select><label class="checkbox"><input type="checkbox" id="iconBadge"> Usar indicador desenhado no ícone</label><p class="meta">Alternativa caso o navegador não exiba o texto branco do badge corretamente.</p><button class="secondary" id="clear">Apagar dados deste ambiente</button><p id="retention" class="meta"></p></details>
+  <footer>Extensão independente, sem afiliação com a OpenAI.</footer>
+</main>
+<script type="module" src="popup.js"></script>
+</body>
 </html>

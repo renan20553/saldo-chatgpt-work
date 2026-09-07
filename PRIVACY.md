@@ -1,49 +1,43 @@
 # Política de Privacidade — Saldo ChatGPT Work
 
-Última atualização: 19 de julho de 2026.
+Atualizada em 6 de setembro de 2026. Aplica-se à versão de revisão 1.1.0.
 
-## Resumo
+## Finalidade e dados processados
 
-O Saldo ChatGPT Work exibe, no próprio navegador, o percentual restante dos limites compartilhados de uso do ChatGPT Work e do Codex para a conta que já está autenticada em `chatgpt.com`. A extensão não vende dados, não exibe publicidade, não cria perfis e não envia informações a servidores próprios ou de terceiros.
+A extensão apresenta limites de uso da conta autenticada em `chatgpt.com`. Processa o token de sessão em memória, identificadores de usuário/workspace, identificação exibida pela sessão, percentuais, horários de redefinição, estados de bloqueio e quantidade de redefinições quando retornada.
 
-## Dados processados
+O painel contém seções para créditos e redefinições. Nesta versão, a leitura de saldo de créditos, recarga automática e detalhes individuais de redefinições ainda não está habilitada por falta de validação do mapeamento HTTP. Os links abrem páginas do próprio ChatGPT para consultar ou concluir o gerenciamento. Nenhuma compra, consumo de redefinição ou alteração de recarga é executada automaticamente.
 
-Para consultar e apresentar o saldo, a extensão processa:
+## Ambiente normal
 
-- o estado da sessão autenticada do ChatGPT;
-- um token de acesso usado somente em memória durante a consulta;
-- identificadores técnicos da conta ou do workspace retornados pela sessão;
-- percentuais utilizados, percentuais restantes e horários de reinício dos limites;
-- a última leitura de uso e o horário da atualização.
+Uma leitura normalizada pode ser armazenada em `chrome.storage.local`, com chave por usuário e workspace e validade de 15 minutos. Só é reutilizada depois de verificar a mesma sessão. Tokens, cabeçalhos de autenticação e respostas brutas não são persistidos.
 
-O token de acesso não é gravado no armazenamento da extensão. A última leitura de uso pode ser mantida localmente para que o painel apresente o resultado mais recente e reduza consultas repetidas.
+A validade controla o reaproveitamento, não uma garantia de eliminação física instantânea: os dados expirados são removidos na próxima limpeza/acesso. Logout ou troca detectados, o comando **Apagar dados deste ambiente** e a desinstalação também removem o cache. Preferências de aparência permanecem até serem substituídas ou a extensão ser removida.
 
-## Compartilhamento e venda
+## Ambiente anônimo/InPrivate
 
-Nenhum dado é vendido, transferido ou compartilhado com terceiros. As únicas comunicações de rede são feitas diretamente com `chatgpt.com` para consultar a sessão e os dados de uso da própria conta autenticada. A extensão não utiliza ferramentas de análise, rastreamento, publicidade ou telemetria.
+Identidade, seleção de workspace, token, dados de uso, respostas e erros ficam somente na memória do contexto privado. Não são gravados em `local`, `sync`, armazenamento de sessão da extensão, IndexedDB, arquivos ou logs. O cache é perdido quando o worker é encerrado; uma retomada exige nova consulta. A extensão também limpa o estado ao detectar o fechamento da última janela privada.
 
-## Permissões
+O armazenamento `local` é compartilhado pelo navegador mesmo com `incognito: split`; por isso o caminho do cache privado não usa essa API. O privado pode ler exclusivamente a preferência de aparência e não persiste alterações feitas nela.
 
-- `alarms`: agenda atualizações periódicas do saldo;
-- `storage`: guarda localmente a última leitura e informações de atualização;
-- acesso a `https://chatgpt.com/*`: consulta a sessão e os limites da conta já autenticada.
+Alarmes têm nomes fixos por contexto. Um prazo operacional de espera para novas requisições pode ser mantido pelo navegador para respeitar falhas e `Retry-After` após suspensão; não contém identidade, token, resposta, saldo nem data de redefinição privada. Datas de redefinição privadas são usadas apenas em temporizadores de memória. A extensão não tenta alterar a retenção da própria sessão/cookies do ChatGPT gerenciada pelo navegador.
 
-## Retenção e exclusão
+## Rede, compartilhamento e permissões
 
-O token de acesso permanece somente em memória durante a consulta. A última leitura de uso fica no armazenamento local do Chrome até ser substituída, até o usuário limpar os dados da extensão ou até remover a extensão.
+As únicas consultas de produção são GET para a sessão e o uso no próprio `chatgpt.com`, por HTTPS. Não há servidor próprio, telemetria, publicidade, venda de dados ou envio a terceiros. A extensão não lê conversas.
 
-## Segurança e limitações
+- `alarms`: agendamento periódico e espera antes de novas tentativas.
+- `storage`: cache normal e preferências de aparência.
+- `https://chatgpt.com/*`: consultar a sessão e os limites autenticados.
 
-Todo o processamento ocorre localmente, e os dados trafegam diretamente entre o navegador e o ChatGPT. A extensão depende de interfaces do ChatGPT que podem mudar ou deixar de estar disponíveis.
+Não solicita `cookies`, `tabs`, `scripting`, histórico, notificações ou acesso a todos os sites. Usa recursos básicos das APIs de janelas/abas para preservar contexto dos links e direcionar o badge, sem a permissão ampla `tabs`.
 
-## Alterações
+## Controle e limitações
 
-Esta política poderá ser atualizada se o funcionamento ou as exigências legais mudarem; a data acima indicará a versão vigente.
+O uso privado exige habilitação manual nos detalhes da extensão. A extensão nunca habilita essa autorização por conta própria e nunca usa a conta normal como alternativa para o privado.
 
-## Contato
+As interfaces do ChatGPT utilizadas são internas e podem mudar. A detecção de logout/troca depende de consultas e eventos de navegação. O código possui testes automatizados; a validação com a extensão instalada em Chrome/Edge e duas contas ainda é uma pendência desta candidata.
 
-Dúvidas sobre privacidade podem ser enviadas pela área de issues do projeto: https://github.com/renan20553/saldo-chatgpt-work/issues
+## Contato e independência
 
-## Independência
-
-Esta é uma extensão independente e não é afiliada, patrocinada ou endossada pela OpenAI. ChatGPT e Codex são marcas de seus respectivos proprietários.
+[Issues do projeto](https://github.com/renan20553/saldo-chatgpt-work/issues). Extensão independente, não afiliada, patrocinada ou endossada pela OpenAI. ChatGPT e Codex são marcas de seus respectivos titulares.
