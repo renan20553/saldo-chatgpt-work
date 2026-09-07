@@ -1,4 +1,15 @@
-# Resultados de validação — candidata 1.1.0
+# Resultados de validação
+
+## Correção 1.1.1 — indicador no Edge
+
+- As capturas do usuário mostraram o percentual pequeno na barra do Edge. O número agora ocupa automaticamente o ícone inteiro nesse navegador, com a unidade no tooltip e no popup.
+- Fonte do popup restaurada aos mesmos tamanhos da versão 1.1.0 integrada no GitHub. A ampliação local do texto foi desfeita.
+- **72 testes automatizados aprovados**, incluindo o uso automático do ícone no Edge com a preferência anterior desativada e a preservação do badge nativo no Chrome.
+- Prévia de `iconPixels` executada no Edge: **48/48 desenhos com texto branco**, cobrindo oito rótulos em seis resoluções (16, 20, 24, 32, 40 e 48 pixels). Captura inspecionada em tamanho de ícone e ampliada; nenhum caractere ausente.
+- Reproduzir: `node scripts/preview.mjs` e abrir `http://127.0.0.1:8765/badge-preview`.
+- A prévia confere o desenho em uma página de teste. A confirmação do indicador atualizado na barra real do Edge permanece pendente após recarregar a extensão. As limitações de homologação da 1.1.0 abaixo continuam aplicáveis.
+
+## Histórico da candidata 1.1.0
 
 Data: 06/09/2026, horário local de São Paulo. **Preparada para revisão; homologação de sessão privada e badge nativo ainda pendente.**
 

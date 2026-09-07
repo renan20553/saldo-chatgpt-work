@@ -7,6 +7,10 @@ const allowed = new Set(['popup.css', 'lib/render.js', 'lib/usage.js', 'lib/badg
 http.createServer(async (request, response) => {
   try {
     const path = new URL(request.url, 'http://127.0.0.1').pathname.slice(1);
+    if (path === 'badge-preview') {
+      response.setHeader('Content-Type', 'text/html; charset=utf-8');
+      response.end(await readFile(resolve(root, 'tests/demo/badge.html'), 'utf8')); return;
+    }
     if (path === '' || path === 'preview') {
       let html = await readFile(resolve(root, 'popup.html'), 'utf8');
       html = html.replace('src="popup.js"', 'src="tests/demo/demo.js"').replace('<main>', '<div style="padding:12px;background:#ffe7a8;color:#272014"><strong>CENÁRIO FICTÍCIO — não é uma consulta</strong><label for="scenario">Cenário de revisão</label><select id="scenario"><option value="success">Sucesso</option><option value="loading">Atualizando</option><option value="error">Falha temporária</option><option value="auth">Sem login privado</option><option value="partial">Dados parciais</option></select><label for="scale">Escala do conteúdo</label><select id="scale"><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option></select><p id="qaResult" role="status"></p></div><main>');

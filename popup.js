@@ -18,7 +18,8 @@ function showError(message) { $('error').hidden = false; $('error').textContent 
 function applyPreferences(value) {
   preferences = value || preferences;
   document.documentElement.dataset.theme = preferences.theme;
-  $('theme').value = preferences.theme; $('iconBadge').checked = preferences.iconBadge;
+  $('theme').value = preferences.theme; $('iconBadge').checked = EDGE || preferences.iconBadge;
+  $('iconBadge').disabled = EDGE;
 }
 function accept(value) { state = value; render(state); }
 async function send(message) {

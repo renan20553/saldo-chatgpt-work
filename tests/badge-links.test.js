@@ -36,6 +36,23 @@ for (const failure of ['absent', 'throws', 'ignored', 'manual']) test(`alternati
   await createBadge(api, false, { pixels: () => ({ fakeImageData: true }) })({}, failure === 'manual');
   assert.equal(api.calls.find(c => c[0] === 'setBadgeText')[1].text, ''); assert.ok(api.calls.find(c => c[0] === 'setIcon')[1].imageData);
 });
+
+test('Edge usa ícone grande mesmo com preferência antiga desativada e mantém percentual no tooltip', async () => {
+  const api = apiMock(), sizes = [];
+  const draw = createBadge(api, false, { userAgent: 'Mozilla/5.0 Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0', pixels: (label, color, size) => { sizes.push(size); return { label, color, size }; } });
+  await draw({ data: { primary: { label: 'Semanal', remainingPercent: 58 } } }, false);
+  assert.deepEqual(sizes, [16, 20, 24, 32, 40, 48]);
+  assert.equal(api.calls.find(c => c[0] === 'setBadgeText')[1].text, '');
+  assert.match(api.calls.find(c => c[0] === 'setTitle')[1].title, /58% restante/);
+  assert.ok(api.calls.every(c => c[1].tabId === 1));
+});
+
+test('Chrome mantém o badge nativo por padrão', async () => {
+  const api = apiMock();
+  await createBadge(api, false, { userAgent: 'Mozilla/5.0 Chrome/152.0.0.0 Safari/537.36', pixels: () => { throw new Error('unexpected icon fallback'); } })({ data: { primary: { remainingPercent: 58 } } });
+  assert.equal(api.calls.find(c => c[0] === 'setBadgeText')[1].text, '58%');
+  assert.ok(api.calls.find(c => c[0] === 'setIcon')[1].path);
+});
 test('links validados ficam na janela do popup e recusam contexto cruzado', async () => {
   const api = apiMock(); await openChatGPT(api, true, 'usage', 2);
   assert.deepEqual(api.calls[0], ['tab', { url: LINKS.usage, windowId: 2 }]);
