@@ -7,14 +7,14 @@
 <body>
 <main>
   <header><img src="icons/icon-48.png" width="40" height="40" alt=""><div><h1>Saldo ChatGPT Work</h1><p id="context" class="context">Ambiente normal</p></div></header>
-  <p id="identity" class="identity">Confirmando conta e workspace…</p>
+  <p id="identity" class="identity">Confirmando conta…</p>
   <div id="accountChoice" hidden><label for="workspace">Workspace a consultar</label><select id="workspace"><option value="">Escolha um workspace</option></select><p class="meta">A seleção vale para esta consulta da extensão. Confira o workspace também nas páginas de gerenciamento.</p></div>
   <p id="status" role="status" aria-live="polite" class="notice">Consultando o saldo…</p>
   <p id="error" role="alert" class="notice error" hidden></p>
   <p id="storageWarning" class="notice warning" hidden>Não foi possível acessar o cache local. Esta leitura permanece em memória.</p>
   <p id="retry" class="meta"></p>
   <section id="usage" hidden>
-    <section><h2>Limites do plano</h2><p id="plan" class="meta"></p><p id="blocked" class="notice error" hidden>Uso bloqueado ou esgotado, conforme informado pelo ChatGPT.</p><div id="limits" class="limits"></div>
+    <section><h2>Limites do plano</h2><p id="plan" class="meta"></p><p id="blocked" class="notice error" hidden>Uso bloqueado ou esgotado, conforme informado pelo ChatGPT.</p><p id="availability" role="status" class="notice" hidden></p><div id="limits" class="limits"></div>
     <p class="explanation">Conforme o plano e os recursos habilitados, estes limites são compartilhados entre Codex, Work, Agentes do Workspace e ChatGPT para Excel. Conversas comuns não estão incluídas. Créditos e controles de gastos do workspace têm regras próprias.</p></section>
     <section id="extraSection" hidden><h2>Outros limites</h2><div id="extraLimits" class="limits"></div></section>
     <section class="balance-section"><h2>Créditos do workspace</h2><p id="creditBalance" class="balance"></p><p id="recharge" class="meta"></p><button class="link" data-destination="usage">Ver créditos e recarga no ChatGPT ↗</button><button id="billingLink" class="link" data-destination="billing" hidden>Abrir faturamento do workspace no ChatGPT ↗</button></section>
@@ -23,7 +23,7 @@
   <div class="actions"><button id="refresh">Atualizar</button><button class="secondary" data-destination="chat">Abrir ChatGPT ↗</button></div>
   <div class="timestamps"><p id="lastSuccess">Última leitura válida: não informada</p><p id="lastAttempt">Última tentativa: não informada</p></div>
   <details id="privateHelp"><summary>Usar no anônimo ou InPrivate</summary><p id="privatePermission"></p><p>Chrome: chrome://extensions → Detalhes → Permitir no modo anônimo.</p><p>Edge: edge://extensions → Detalhes → Permitir no InPrivate.</p><p>A autorização é manual. Entre no ChatGPT também no ambiente privado; ele não usa o login da janela normal.</p></details>
-  <details><summary>Aparência e dados locais</summary><label for="theme">Tema</label><select id="theme"><option value="system">Acompanhar o navegador</option><option value="light">Claro</option><option value="dark">Escuro</option></select><label class="checkbox"><input type="checkbox" id="iconBadge"> Mostrar número maior no ícone</label><p class="meta">Automático no Edge. O número ocupa o ícone inteiro; o símbolo % aparece no painel e ao passar o mouse.</p><button class="secondary" id="clear">Apagar dados deste ambiente</button><p id="retention" class="meta"></p></details>
+  <details><summary>Aparência e dados locais</summary><label for="theme">Tema</label><select id="theme"><option value="system">Acompanhar o navegador</option><option value="light">Claro</option><option value="dark">Escuro</option></select><p class="meta">O indicador tem o mesmo desenho no Chrome e no Edge. 5 horas aparecem em cima e o semanal embaixo, sem o símbolo %. Quando só um limite está disponível, aparece apenas esse valor.</p><button class="secondary" id="clear">Apagar dados deste ambiente</button><p id="retention" class="meta"></p></details>
   <footer>Extensão independente, sem afiliação com a OpenAI.</footer>
 </main>
 <script type="module" src="popup.js"></script>

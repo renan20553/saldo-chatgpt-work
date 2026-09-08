@@ -1,6 +1,6 @@
 # Política de Privacidade — Saldo ChatGPT Work
 
-Atualizada em 6 de setembro de 2026. Aplica-se à versão de revisão 1.1.0.
+Atualizada em 7 de setembro de 2026. Aplica-se à versão 1.1.4.
 
 ## Finalidade e dados processados
 

@@ -1,8 +1,8 @@
-# Saldo ChatGPT Work — 1.1.0 (candidata a revisão)
+# Saldo ChatGPT Work — 1.1.4
 
 Uma única extensão Manifest V3 para Chrome e Microsoft Edge, em português brasileiro. Exibe os limites de uso retornados pela sessão do ChatGPT e oferece links para concluir o gerenciamento no próprio ChatGPT. Extensão independente, sem afiliação, patrocínio ou endosso da OpenAI.
 
-**Não publicada.** O pacote foi preparado para revisão. A homologação com a extensão instalada, duas contas e ambientes privados ainda está pendente. Veja [os resultados e limites da validação](docs/TEST_RESULTS.md).
+**Versão 1.1.4 aprovada para publicação pelo mantenedor.** A disponibilidade na Chrome Web Store depende do envio e da revisão da loja. A homologação com a extensão instalada, duas contas e ambientes privados ainda está pendente. Veja [os resultados e limites da validação](docs/TEST_RESULTS.md).
 
 ## Instalação para revisão
 
@@ -29,10 +29,10 @@ Apenas preferências não sensíveis de aparência podem ser lidas do armazename
 
 ## Como interpretar o painel
 
-- O badge mostra o **menor percentual restante válido** entre os limites principais; o tooltip descreve os dois valores e o determinante.
-- Texto branco explícito e fundos escuros. No Edge, o número ocupa automaticamente o ícone inteiro para melhorar a leitura. O símbolo `%` permanece no tooltip e no painel. São gerados ícones para diferentes escalas de tela.
-- No Chrome, o badge nativo continua como padrão; **Aparência e dados locais → Mostrar número maior no ícone** ativa a alternativa. Ela também é usada se a API de texto branco não existir, falhar ou reportar outra cor. O badge nativo é apagado quando o número é desenhado no ícone.
-- `…`: carregamento sem leitura; `—`: indisponível; `!`: erro ou bloqueio; `~`: leitura desatualizada. Um limite vencido não é automaticamente redefinido para 100%.
+- O indicador mostra **5 horas em cima e semanal embaixo**, sem `%`. A ordem usa a duração informada pela fonte. Se apenas um limite estiver disponível, mostra esse valor; nenhum limite disponível restaura o ícone original. Não calcula média e não inventa valor para um limite ausente.
+- Texto branco e desenho próprio igual nos dois navegadores, com seis resoluções. Os dois valores ficam empilhados, sem separador; cada linha usa algarismos de 4 × 7 pixels com espaço entre dígitos; o badge nativo permanece vazio para não cobrir o desenho. O tooltip identifica os limites e inclui os percentuais completos.
+- O fundo alerta para percentuais baixos. 5 horas em zero com semanal em 58 é amarelo (espera pela janela de 5 horas); 5 horas em 58 com semanal em zero é vermelho (semanal esgotado). Bloqueios adicionais são preservados e explicados no popup/tooltip.
+- `…`: carregamento sem leitura; `!`: erro sem leitura; `~`: leitura desatualizada. Um limite vencido não é automaticamente redefinido para 100%.
 - Duração vem de `limit_window_seconds`, sem pressupor que toda janela primária dura 5 horas. O painel mostra contagem regressiva e data/hora completa no fuso do navegador.
 - Percentuais ausentes ou inválidos são indisponíveis. Zero válido continua zero. Estados explícitos de bloqueio são preservados.
 - Se a sessão não identificar um workspace inequívoco, o painel pede seleção entre os identificadores fornecidos por ela. A extensão não escolhe a primeira conta silenciosamente. Essa seleção não altera o workspace do site; confira-o ao abrir gerenciamento.

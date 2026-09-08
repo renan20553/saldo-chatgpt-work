@@ -1,5 +1,28 @@
 # Alterações
 
+## 1.1.4 — valores empilhados
+
+- 5 horas na linha superior e semanal na inferior, sem percentual ou separador. Cada linha usa a largura inteira do ícone; os dígitos têm 4 × 7 pixels e espaçamento inteiro, inclusive em 100.
+- Ordem dos dados, cores, estados de erro e leitura com apenas um limite preservados. Fonte do popup preservada.
+- Publicação da versão 1.1.4 no GitHub e envio à Chrome Web Store autorizados pelo mantenedor em 7 de setembro de 2026.
+
+## 1.1.3 — dois valores separados por barra vertical
+
+- Indicador `5 horas|semanal`, sem símbolo de percentual e sem médias. Ordem determinada pela duração, zero preservado, valor único quando só uma janela está disponível.
+- Desenho próprio com algarismos fixos; o caso 100 usa espaçamento fracionário determinístico para manter os três dígitos. Mesma implementação no Chrome e Edge.
+- Atualizações idênticas não redesenham o ícone; novas abas recebem o indicador, e a ausência de dados restaura o ícone original.
+- Alterações preparadas localmente. Envio ao GitHub aguarda autorização explícita do usuário após a revisão.
+
+
+## 1.1.2 — indicador padronizado e popup mais simples
+
+- Avisos no popup distinguem espera de 5 horas de esgotamento semanal. A duração vem dos dados, sem presumir a posição das janelas.
+
+- Mesmo desenho arredondado do indicador no Chrome e no Edge, com texto branco e seis resoluções; configurações antigas não causam divergência entre os navegadores.
+- Removida a linha “Workspace consultado” da identificação no popup. A conta e a seleção necessária para resolver ambiguidade continuam disponíveis; o isolamento interno por workspace permanece.
+- Removida a opção de aparência que alternava entre indicadores diferentes. A fonte do popup continua igual à 1.1.0.
+- Localizada e documentada a consulta oficial de detalhes das redefinições. A ativação continua pendente da confirmação de uma resposta real; a navegação de automação foi bloqueada pelo navegador.
+
 ## 1.1.1 — número maior na barra do Edge
 
 - Edge desenha o percentual como número grande no ícone, automaticamente. A unidade permanece no tooltip e no painel.

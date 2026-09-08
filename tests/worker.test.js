@@ -21,7 +21,8 @@ async function worker(privateContext, storage = storageMock(), savedAlarms = new
     action: Object.fromEntries(['setBadgeTextColor', 'setBadgeBackgroundColor', 'setBadgeText', 'setTitle', 'setIcon'].map(method => [method, async value => { actions.push([method, value]); }]))
   };
   const workerTimeout = (fn, ms) => { const timer = setTimeout(fn, ms); timer.unref(); return timer; };
-  const context = vm.createContext({ chrome, structuredClone, AbortController, setTimeout: workerTimeout, clearTimeout, TextDecoder, Uint8Array, atob, fetch: async (url, init) => { calls.push({ url, init }); return new Response(JSON.stringify(url.endsWith('/session') ? liveSession : usage()), { status: url.endsWith('/session') ? 200 : usageStatus, headers: { 'Retry-After': '120' } }); } });
+  class ImageData { constructor(data, width, height) { this.data = data; this.width = width; this.height = height; } }
+  const context = vm.createContext({ ImageData, chrome, structuredClone, AbortController, setTimeout: workerTimeout, clearTimeout, TextDecoder, Uint8Array, atob, fetch: async (url, init) => { calls.push({ url, init }); return new Response(JSON.stringify(url.endsWith('/session') ? liveSession : usage()), { status: url.endsWith('/session') ? 200 : usageStatus, headers: { 'Retry-After': '120' } }); } });
   const modules = new Map();
   async function moduleAt(path) {
     if (modules.has(path)) return modules.get(path);
@@ -43,6 +44,8 @@ test('worker real em duas VMs: primeiro popup inicializa cada ambiente, cache e 
   assert.equal(a.state.identity.accountId, 'normal-a'); assert.equal(b.state.identity.accountId, 'private-b');
   assert.ok(normal.alarms.has('usage.normal.periodic')); assert.ok(privateWorker.alarms.has('usage.private.periodic'));
   assert.equal(privateWorker.alarms.has('usage.private.reset'), false);
+  assert.ok(normal.actions.some(c => c[0] === 'setIcon'));
+  assert.ok(privateWorker.actions.some(c => c[0] === 'setIcon'));
   assert.ok(normal.actions.every(c => c[1].tabId === 1)); assert.ok(privateWorker.actions.every(c => c[1].tabId === 2));
   assert.deepEqual(privateWorker.storageCalls, [['get', 'preferences']]);
   assert.ok(!JSON.stringify(shared.data).includes('private-b'));

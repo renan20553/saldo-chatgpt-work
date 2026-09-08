@@ -12,7 +12,7 @@ const ports = new Set();
 let privateClosed = false;
 let restoredCooldown = null;
 let privateResetTimer = null;
-let preferences = { theme: 'system', iconBadge: false };
+let preferences = { theme: 'system' };
 const cache = createCache({ privateContext: PRIVATE, storage: PRIVATE ? undefined : chrome.storage.local });
 const paintBadge = createBadge(chrome, PRIVATE);
 let scheduleQueue = Promise.resolve();
@@ -21,7 +21,7 @@ const controller = createController({ client: makeClient(), cache, privateContex
   if (['temporary', 'schema'].includes(state.error?.code) && state.retryAt) restoredCooldown = Math.max(restoredCooldown || 0, state.retryAt);
   const message = { type: 'STATE', state, preferences };
   for (const port of ports) { try { port.postMessage(message); } catch { ports.delete(port); } }
-  void paintBadge(state, preferences.iconBadge).catch(() => {});
+  void paintBadge(state).catch(() => {});
   const version = ++stateVersion;
   scheduleQueue = scheduleQueue.catch(() => {}).then(() => version === stateVersion ? schedule(state) : undefined).catch(() => {});
 }});
@@ -54,12 +54,12 @@ async function initialize() {
   try { restoredCooldown = (await chrome.alarms.get(COOLDOWN))?.scheduledTime || null; } catch { /* Recheck source after resumption if scheduler is unavailable. */ }
   try {
     const p = (await chrome.storage.local.get('preferences')).preferences;
-    preferences = { theme: ['system', 'light', 'dark'].includes(p?.theme) ? p.theme : 'system', iconBadge: p?.iconBadge === true };
+    preferences = { theme: ['system', 'light', 'dark'].includes(p?.theme) ? p.theme : 'system' };
   } catch { /* Preferences are optional. Private usage is never read from storage. */ }
   const snapshot = controller.snapshot();
   if (restoredCooldown > Date.now()) snapshot.retryAt = restoredCooldown;
   await schedule(snapshot);
-  await paintBadge(controller.snapshot(), preferences.iconBadge);
+  await paintBadge(controller.snapshot());
 }
 const ready = initialize().catch(() => {});
 async function refresh() {
@@ -67,7 +67,7 @@ async function refresh() {
   if (privateClosed) return controller.snapshot();
   if (restoredCooldown > Date.now()) {
     const waiting = { ...controller.snapshot(), retryAt: restoredCooldown, error: { code: 'temporary', message: 'Aguardando o intervalo solicitado pelo ChatGPT antes de consultar novamente.' } };
-    await paintBadge(waiting, preferences.iconBadge).catch(() => {});
+    await paintBadge(waiting).catch(() => {});
     return waiting;
   }
   return controller.refresh();
@@ -95,13 +95,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       case 'CLEAR_CACHE': await controller.invalidate({ message: 'Dados apagados. Atualize para consultar a sessão novamente.' }); return { ok: true, state: controller.snapshot(), preferences };
       case 'OPEN_CHATGPT': await openChatGPT(chrome, PRIVATE, message.destination, message.windowId); return { ok: true };
       case 'SET_PREFERENCES': {
-        preferences = { theme: ['system', 'light', 'dark'].includes(message.theme) ? message.theme : preferences.theme, iconBadge: typeof message.iconBadge === 'boolean' ? message.iconBadge : preferences.iconBadge };
+        preferences = { theme: ['system', 'light', 'dark'].includes(message.theme) ? message.theme : preferences.theme };
         // In private browsing preference edits last only for this worker lifetime.
         if (!PRIVATE) {
           try { await chrome.storage.local.set({ preferences }); }
           catch { return { ok: false, message: 'Não foi possível salvar as preferências.' }; }
         }
-        await paintBadge(controller.snapshot(), preferences.iconBadge);
+        await paintBadge(controller.snapshot());
         return { ok: true, preferences };
       }
       default: return { ok: false, message: 'Solicitação não reconhecida.' };
@@ -113,12 +113,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.tabs.onActivated.addListener(() => {
   void ready.then(async () => {
-    await paintBadge(controller.snapshot(), preferences.iconBadge);
+    await paintBadge(controller.snapshot());
     const state = controller.snapshot();
     if (!state.lastAttempt || Date.now() - state.lastAttempt > 30000) await refresh();
   }).catch(() => {});
 });
-chrome.tabs.onCreated.addListener(tab => { if (Boolean(tab.incognito) === PRIVATE) void ready.then(() => paintBadge(controller.snapshot(), preferences.iconBadge)).catch(() => {}); });
+chrome.tabs.onCreated.addListener(tab => { if (Boolean(tab.incognito) === PRIVATE) void ready.then(() => paintBadge(controller.snapshot())).catch(() => {}); });
 chrome.tabs.onUpdated.addListener((_id, change, tab) => {
   if (Boolean(tab.incognito) !== PRIVATE) return;
   // chatgpt.com host permission grants this URL; no tabs/cookies/scripting permission.
@@ -131,7 +131,7 @@ chrome.windows.onFocusChanged.addListener(id => {
   void chrome.windows.get(id).then(w => {
     if (Boolean(w.incognito) !== PRIVATE) return;
     const state = controller.snapshot();
-    return !state.lastAttempt || Date.now() - state.lastAttempt > 30000 ? refresh() : paintBadge(state, preferences.iconBadge);
+    return !state.lastAttempt || Date.now() - state.lastAttempt > 30000 ? refresh() : paintBadge(state);
   }).catch(() => {});
 });
 chrome.windows.onRemoved.addListener(() => {
