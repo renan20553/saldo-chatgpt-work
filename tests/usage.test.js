@@ -42,12 +42,12 @@ test('duração depende do campo, incluindo limites adicionais', () => {
 test('bloqueio explícito é preservado com percentual positivo', () => {
   const raw = usage(); raw.rate_limit.allowed = false;
   const data = parseUsage(raw, now); assert.equal(data.blocked, true);
-  assert.equal(badgeModel({ data }, now).text, '!');
+  assert.equal(badgeModel({ data }, now).text, '100|58');
 });
-test('menor percentual válido define badge e tooltip explica ambos', () => {
+test('dois valores separados por barra vertical, sem percentual ou média', () => {
   const data = parseUsage(usage(), now); const model = badgeModel({ data }, now);
-  assert.equal(model.text, '58%'); assert.match(model.title, /100%/); assert.match(model.title, /58%/); assert.match(model.title, /menor percentual válido/);
-  data.primary.remainingPercent = null; assert.equal(badgeModel({ data }, now).text, '58%');
+  assert.equal(model.text, '100|58'); assert.match(model.title, /100%/); assert.match(model.title, /58%/); assert.match(model.title, /Ordem do indicador/);
+  data.primary.remainingPercent = null; assert.equal(badgeModel({ data }, now).text, '58');
 });
 test('cache vencido fica explicitamente desatualizado, sem presumir recarga', () => {
   const data = parseUsage(usage(), now);
@@ -61,6 +61,6 @@ test('resposta de erro ou formato estranho não é leitura válida', () => {
 test('estado explícito de créditos esgotados bloqueia mesmo com janelas positivas', () => {
   const raw = { ...usage(), rate_limit_reached_type: { type: 'workspace_owner_credits_depleted' } };
   const data = parseUsage(raw, now); assert.equal(data.blocked, true); assert.match(data.blockedReason, /Créditos/);
-  assert.equal(badgeModel({ data }, now).text, '!');
+  assert.equal(badgeModel({ data }, now).text, '100|58');
   assert.equal(badgeModel({ data, stale: true }, now).text, '~');
 });

@@ -1,6 +1,6 @@
 # Texto para a Chrome Web Store — rascunho
 
-Não enviar à loja antes de concluir os itens bloqueantes em MANUAL_TESTS.md. Esta execução não publicou a extensão.
+Versão 1.1.4 aprovada pelo mantenedor para envio em 7 de setembro de 2026. As limitações de validação permanecem documentadas em MANUAL_TESTS.md e TEST_RESULTS.md. A aprovação do mantenedor não equivale à publicação ou aprovação pela loja.
 
 ## Nome
 
@@ -12,12 +12,12 @@ Acompanhe os limites do ChatGPT Work e Codex no navegador, com percentuais resta
 
 ## Descrição detalhada
 
-Consulte os limites retornados pela conta conectada ao ChatGPT sem sair do navegador. O ícone mostra o menor percentual restante válido, e o painel apresenta janelas de uso, contagem regressiva, data completa da próxima redefinição e horário da última leitura.
+Consulte os limites retornados pela conta conectada ao ChatGPT sem sair do navegador. O ícone mostra os percentuais restantes em duas linhas: 5 horas em cima e semanal embaixo, sem o símbolo %. Quando apenas um limite está disponível, mostra somente esse valor, e o painel apresenta janelas de uso, contagem regressiva, data completa da próxima redefinição e horário da última leitura.
 
 Recursos:
 
 - Interface em português brasileiro, temas claro/escuro e navegação por teclado.
-- Identificação da conta/workspace e aviso quando a sessão exigir uma escolha explícita.
+- Identificação da conta e aviso quando a sessão exigir uma escolha explícita.
 - Avisos de carregamento, falha, bloqueio e leitura desatualizada, sem presumir saldo disponível.
 - Quantidade de redefinições quando fornecida pela fonte consultada.
 - Links para consultar créditos, recarga e gerenciar redefinições no próprio ChatGPT. A extensão não faz compras nem usa redefinições automaticamente.
@@ -45,7 +45,7 @@ A API `tabs` é usada apenas em operações básicas para obter IDs/contexto, ap
 
 O processamento inclui autenticação em memória, identificação da conta/workspace e informações de uso. Identificação e uso normalizados podem ficar no cache normal local; dados de uso privados não são persistidos. Não confundir ausência de transferência a servidores próprios com ausência de processamento de dados. Preencher as categorias efetivamente aplicáveis no formulário vigente da loja, de acordo com PRIVACY.md.
 
-Hospedar a política de privacidade em URL pública acessível antes do envio. A política atual no GitHub remoto ainda pode ser a versão anterior; esta revisão não atualizou essa página remota.
+Política de privacidade pública: https://github.com/renan20553/saldo-chatgpt-work/blob/main/PRIVACY.md. O conteúdo deve corresponder à versão 1.1.4 antes do envio.
 
 ## Instalação e material visual
 

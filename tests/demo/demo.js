@@ -22,13 +22,17 @@ function update() {
   if (scenario === 'error') { next.stale = true; next.error = { code: 'temporary', message: 'Falha temporária de conexão. Exibindo a última leitura válida desta conta.' }; }
   if (scenario === 'auth') { next.private = true; next.identity = null; next.data = null; next.lastSuccess = null; next.error = { code: 'auth', message: 'Entre no ChatGPT neste ambiente privado. A conta normal não será usada.' }; }
   if (scenario === 'partial') { next.data.primary.remainingPercent = null; next.data.primary.resetsAt = null; next.data.credits = { balance: null, autoRecharge: null }; next.data.resets.details = null; }
+  if (scenario === 'short-empty') { next.data.primary.remainingPercent = 0; next.data.blocked = true; }
+  if (scenario === 'weekly-empty') { next.data.secondary.remainingPercent = 0; next.data.blocked = true; }
   $('context').textContent = next.private ? 'Modo anônimo / InPrivate · demonstração' : 'Ambiente normal · demonstração';
   render(next);
-  const tests = [document.documentElement.lang === 'pt-BR', document.querySelectorAll('script[src^="http"]').length === 0, $('error').getAttribute('role') === 'alert', $('status').getAttribute('role') === 'status'];
+  const tests = [!$('identity').textContent.includes('Workspace consultado:'), !$('identity').textContent.includes('Workspace de demonstração'), document.documentElement.lang === 'pt-BR', document.querySelectorAll('script[src^="http"]').length === 0, $('error').getAttribute('role') === 'alert', $('status').getAttribute('role') === 'status'];
   if (scenario === 'success') tests.push($('limits').textContent.includes('100%'), $('limits').textContent.includes('58%'), $('creditBalance').textContent.includes('0 créditos'), $('resetDetails').children.length === 2);
   if (scenario === 'auth') tests.push($('usage').hidden, $('lastSuccess').textContent.includes('Não informada'));
   if (scenario === 'loading') tests.push(!$('usage').hidden, $('refresh').disabled);
   if (scenario === 'partial') tests.push($('limits').textContent.includes('Indisponível'), document.querySelectorAll('[role="progressbar"]').length === 1);
+  if (scenario === 'short-empty') tests.push(!$('availability').hidden, $('availability').textContent.includes('Aguarde'), $('blocked').hidden);
+  if (scenario === 'weekly-empty') tests.push(!$('availability').hidden, $('availability').textContent.includes('semanal esgotado'), $('blocked').hidden);
   $('qaResult').textContent = `Verificações de DOM: ${tests.filter(Boolean).length}/${tests.length}`;
 }
 $('scenario').addEventListener('change', update);

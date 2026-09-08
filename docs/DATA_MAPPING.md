@@ -33,6 +33,14 @@ A leitura direta de `/api/auth/session` pelo navegador de automação foi bloque
 
 ## Campos novos deliberadamente não ativados
 
+### Investigação adicional — 1.1.2
+
+Foi localizada uma fonte oficial para os detalhes individuais: o cliente de backend da OpenAI implementa `GET /backend-api/wham/rate-limit-reset-credits`. O retorno é uma lista `credits` com `reset_type`, `status`, `expires_at`, `title` e `description`, além da contagem `available_count`. A consulta de uso anterior traz apenas a contagem resumida.
+
+Fontes: [implementação do cliente](https://github.com/openai/codex/blob/main/codex-rs/backend-client/src/client/rate_limit_resets.rs), [tipos HTTP](https://github.com/openai/codex/blob/main/codex-rs/backend-client/src/types.rs) e [testes do contrato](https://github.com/openai/codex/blob/main/codex-rs/backend-client/src/client/rate_limit_resets_tests.rs). O exemplo oficial inclui o título `Full reset (Weekly + 5 hr)` e uma data ISO em `expires_at`. Isso é evidência do contrato publicado, não uma captura da conta do usuário.
+
+A tentativa de abrir essa consulta no Chrome pessoal pelo navegador de automação retornou `net::ERR_BLOCKED_BY_CLIENT`. Não foi possível confirmar uma resposta autenticada real. Respeitando o requisito de confirmação antes de implementar os novos campos, a 1.1.2 mantém somente a contagem no popup e o link de gerenciamento. Não foram adicionadas consultas de consumo, datas fixas ou valores inferidos da captura. Falta validar uma resposta real dessa consulta no contexto autenticado e normalizar apenas os campos necessários, preservando isolamento, cancelamento, cache privado em memória e tratamento de falha parcial.
+
 Saldo de créditos, estado de recarga, detalhes individuais de redefinições e promoções não têm mapeamento HTTP validado nesta execução. O parser retorna `credits.balance = null`, `credits.autoRecharge = null`, `resets.details = null`. O renderer informa que a consulta/detalhes não estão disponíveis nesta versão e encaminha ao ChatGPT. Não transforma desconhecido em zero, desativado, ilimitado ou não aplicável.
 
 Para habilitá-los: confirmar na conta empresarial e na pessoal o endpoint efetivamente usado, autorização/workspace, formato, unidade do saldo, significado de ausência/null, tipo/alcance de cada redefinição, paginação e vencimento. Criar exemplos sanitizados desse contrato confirmado, sem tokens, cabeçalhos, IDs reais ou respostas integrais. Só então ampliar o parser e seus testes. A oferta promocional não é exibida pela extensão, mesmo tendo sido observada em uma página, pois falta uma fonte dinâmica aplicável à conta consultada.

@@ -5,7 +5,7 @@ const PRIVATE = chrome.extension.inIncognitoContext === true;
 const EDGE = /Edg\//.test(navigator.userAgent);
 const $ = id => document.getElementById(id);
 let state = null, port = null, requestId = 0, lastExpiryRefresh = 0;
-let preferences = { theme: 'system', iconBadge: false };
+let preferences = { theme: 'system' };
 $('context').textContent = PRIVATE ? EDGE ? 'InPrivate' : 'Modo anônimo' : 'Ambiente normal';
 $('privateHelp').hidden = PRIVATE;
 $('retention').textContent = PRIVATE ? 'Dados de uso e alterações de aparência ficam só na memória desta sessão privada.' : 'Cache por conta/workspace com validade de 15 minutos. A limpeza ocorre ao retomar ou apagar os dados. Tokens ficam somente em memória.';
@@ -18,8 +18,7 @@ function showError(message) { $('error').hidden = false; $('error').textContent 
 function applyPreferences(value) {
   preferences = value || preferences;
   document.documentElement.dataset.theme = preferences.theme;
-  $('theme').value = preferences.theme; $('iconBadge').checked = EDGE || preferences.iconBadge;
-  $('iconBadge').disabled = EDGE;
+  $('theme').value = preferences.theme;
 }
 function accept(value) { state = value; render(state); }
 async function send(message) {
@@ -74,11 +73,10 @@ for (const button of document.querySelectorAll('[data-destination]')) button.add
   } catch { showError('Não foi possível abrir o ChatGPT no mesmo ambiente. Reabra o painel e tente novamente.'); }
 });
 async function savePreferences() {
-  try { const result = await send({ type: 'SET_PREFERENCES', theme: $('theme').value, iconBadge: $('iconBadge').checked }); applyPreferences(result.preferences); }
+  try { const result = await send({ type: 'SET_PREFERENCES', theme: $('theme').value }); applyPreferences(result.preferences); }
   catch { applyPreferences(preferences); showError('Não foi possível salvar as preferências.'); }
 }
 $('theme').addEventListener('change', savePreferences);
-$('iconBadge').addEventListener('change', savePreferences);
 setInterval(() => {
   const now = Date.now();
   for (const node of document.querySelectorAll('[data-reset-at]')) node.textContent = countdown(Number(node.dataset.resetAt), now);

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createBadge } from '../lib/badge.js';
+import { createBadge as realCreateBadge } from '../lib/badge.js';
+const createBadge = (api, privateContext, options = {}) => realCreateBadge(api, privateContext, { pixels: (label, color, size) => ({ label, color, size }), ...options });
 import { openChatGPT, LINKS } from '../lib/links.js';
 import { deferred } from './fixtures.js';
 function apiMock() {
@@ -26,14 +27,14 @@ test('atualização de badge atrasada é descartada após invalidar a leitura', 
   const old = draw({ data: { primary: { remainingPercent: 58, label: 'Antigo' } } });
   await entered.promise;
   const latest = draw({ error: { message: 'Sessão encerrada' } }); gate.resolve(); await Promise.all([old, latest]);
-  assert.deepEqual(api.calls.filter(c => c[0] === 'setBadgeText').map(c => c[1].text), ['!']);
+  assert.deepEqual(api.calls.filter(c => c[0] === 'setIcon').map(c => c[1].imageData[16].label), ['!']);
 });
-for (const failure of ['absent', 'throws', 'ignored', 'manual']) test(`alternativa do ícone sem duplicar texto: ${failure}`, async () => {
+for (const failure of ['absent', 'throws', 'ignored', 'manual']) test(`indicador uniforme sem depender da API nativa: ${failure}`, async () => {
   const api = apiMock();
   if (failure === 'absent') delete api.action.setBadgeTextColor;
   if (failure === 'throws') api.action.setBadgeTextColor = async () => { throw new Error('unsupported'); };
   if (failure === 'ignored') api.action.getBadgeTextColor = async () => [0, 0, 0, 255];
-  await createBadge(api, false, { pixels: () => ({ fakeImageData: true }) })({}, failure === 'manual');
+  await createBadge(api, false, { pixels: () => ({ fakeImageData: true }) })({ data: { primary: { remainingPercent: 58 } } }, failure === 'manual');
   assert.equal(api.calls.find(c => c[0] === 'setBadgeText')[1].text, ''); assert.ok(api.calls.find(c => c[0] === 'setIcon')[1].imageData);
 });
 
@@ -47,11 +48,14 @@ test('Edge usa ícone grande mesmo com preferência antiga desativada e mantém 
   assert.ok(api.calls.every(c => c[1].tabId === 1));
 });
 
-test('Chrome mantém o badge nativo por padrão', async () => {
+test('Chrome e Edge recebem exatamente o mesmo desenho, ignorando preferência antiga', async () => {
   const api = apiMock();
-  await createBadge(api, false, { userAgent: 'Mozilla/5.0 Chrome/152.0.0.0 Safari/537.36', pixels: () => { throw new Error('unexpected icon fallback'); } })({ data: { primary: { remainingPercent: 58 } } });
-  assert.equal(api.calls.find(c => c[0] === 'setBadgeText')[1].text, '58%');
-  assert.ok(api.calls.find(c => c[0] === 'setIcon')[1].path);
+  const edge = apiMock(), state = { data: { primary: { remainingPercent: 58 } } };
+  await createBadge(api, false, { userAgent: 'Chrome/152.0.0.0' })(state, false);
+  await createBadge(edge, false, { userAgent: 'Chrome/152.0.0.0 Edg/152.0.0.0' })(state, true);
+  assert.deepEqual(api.calls, edge.calls);
+  assert.equal(api.calls.find(c => c[0] === 'setBadgeText')[1].text, '');
+  assert.equal(api.calls.find(c => c[0] === 'setIcon')[1].imageData[16].label, '58');
 });
 test('links validados ficam na janela do popup e recusam contexto cruzado', async () => {
   const api = apiMock(); await openChatGPT(api, true, 'usage', 2);

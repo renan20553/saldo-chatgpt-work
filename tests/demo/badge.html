@@ -1,28 +1,32 @@
 <!doctype html>
 <html lang="pt-BR"><meta charset="utf-8"><title>Prévia do indicador</title>
-<style>body{font:15px system-ui;background:#202123;color:white;padding:24px}table{border-spacing:20px 14px}th,td{text-align:center}canvas{width:16px;height:16px;vertical-align:middle}.large canvas{width:64px;height:64px;image-rendering:pixelated}p{max-width:680px}</style>
-<h1>Número maior no ícone</h1>
-<p>Dados fictícios. Cada indicador ocupa 16 × 16 pixels CSS. As linhas usam imagens em diferentes resoluções para a escala da tela. Esta página confere o desenho; não substitui a extensão instalada.</p>
-<table><thead><tr><th>Escala</th></tr></thead><tbody></tbody></table><p id="result" role="status">Conferindo desenhos…</p>
+<style>body{font:14px system-ui;background:#202123;color:white;padding:20px;margin:0}body.light{background:#fff;color:#202123}h1{font-size:22px}table{border-spacing:12px 8px}th,td{text-align:center;min-width:55px}canvas{width:16px;height:16px;vertical-align:middle}.large canvas{width:64px;height:64px;image-rendering:pixelated}p{max-width:760px}button{font:inherit;padding:6px 12px}section{overflow:auto;margin-bottom:24px}</style>
+<h1>5 horas em cima · semanal embaixo</h1><p>Prévia com dados fictícios. Cada ícone ocupa 16 × 16 pixels CSS. A linha ampliada serve para conferir os caracteres. Não é a barra de uma extensão instalada.</p>
+<button id="theme">Alternar claro/escuro</button><p id="result" role="status">Conferindo desenhos…</p><main></main>
 <script type="module">
 import { iconPixels } from '/lib/badge.js';
-const labels = ['0%', '3%', '58%', '100%', '!', '~', '…', '—'];
-for (const label of labels) { const cell = document.createElement('th'); cell.textContent = label; document.querySelector('thead tr').append(cell); }
-let checked = 0;
-for (const size of [16, 20, 24, 32, 40, 48]) {
-  const row = document.createElement('tr'), heading = document.createElement('th'); heading.textContent = `${size / 16 * 100}%`; row.append(heading);
-  for (const label of labels) {
-    const pixels = iconPixels(label, label === '0%' || label === '3%' || label === '!' ? '#a32121' : '#08624a', size);
-    const canvas = document.createElement('canvas'); canvas.width = canvas.height = size; canvas.setAttribute('aria-label', label); canvas.getContext('2d').putImageData(pixels, 0, 0);
-    const cell = document.createElement('td'); cell.append(canvas); row.append(cell);
-    let ink = 0;
-    for (let i = 0; i < pixels.data.length; i += 4) if (pixels.data[i] > 220 && pixels.data[i + 1] > 220 && pixels.data[i + 2] > 220) ink++;
-    if (!ink) throw new Error(`Texto não desenhado: ${label}/${size}`);
-    checked++;
+const groups = [['Dois limites',['0|0','8|100','100|8','100|100','100|58','0|58','58|0']],['Um limite',['0','1','8','9','10','42','88']],['Mais casos',['99','100','!','~','…','—']]];
+let checked=0;
+for(const [title,labels] of groups) {
+  const section=document.createElement('section'),heading=document.createElement('h2'); heading.textContent=title; section.append(heading);
+  const table=document.createElement('table'),head=document.createElement('thead'),body=document.createElement('tbody');
+  const header=document.createElement('tr');
+  for(const label of ['Escala',...labels]) { const cell=document.createElement('th'); cell.textContent=label; header.append(cell); }
+  head.append(header); table.append(head,body); section.append(table); document.querySelector('main').append(section);
+  for(const size of [16,20,24,32,40,48]) {
+    const row=document.createElement('tr'),labelCell=document.createElement('th'); labelCell.textContent=`${size/16*100}%`; row.append(labelCell);
+    for(const label of labels) {
+      const color=label==='0|58'?'#795100':label==='58|0'||label==='0|0'||label==='!'?'#a32121':'#08624a';
+      const pixels=iconPixels(label,color,size),canvas=document.createElement('canvas'); canvas.width=canvas.height=size; canvas.setAttribute('aria-label',label); canvas.getContext('2d').putImageData(pixels,0,0);
+      const cell=document.createElement('td'); cell.append(canvas); row.append(cell);
+      let ink=0; for(let i=0;i<pixels.data.length;i+=4) if(pixels.data[i]===255&&pixels.data[i+1]===255&&pixels.data[i+2]===255) ink++;
+      if(!ink) throw Error(`Texto ausente: ${label}/${size}`); checked++;
+    }
+    body.append(row);
   }
-  document.querySelector('tbody').append(row);
+  const enlarged=body.firstChild.cloneNode(true); enlarged.className='large'; enlarged.firstChild.textContent='Detalhe 4×';
+  const sources=body.firstChild.querySelectorAll('canvas'); enlarged.querySelectorAll('canvas').forEach((canvas,i)=>canvas.getContext('2d').drawImage(sources[i],0,0)); body.append(enlarged);
 }
-const enlarged = document.querySelector('tbody tr').cloneNode(true); enlarged.className = 'large'; enlarged.firstChild.textContent = 'Detalhe 4×';
-const sources = document.querySelectorAll('tbody tr:first-child canvas'); enlarged.querySelectorAll('canvas').forEach((canvas, i) => canvas.getContext('2d').drawImage(sources[i], 0, 0)); document.querySelector('tbody').append(enlarged);
-document.querySelector('#result').textContent = `${checked}/48 desenhos com texto branco visível.`;
+document.querySelector('#result').textContent=`${checked}/120 desenhos com texto branco visível.`;
+document.querySelector('#theme').addEventListener('click',()=>document.body.classList.toggle('light'));
 </script></html>

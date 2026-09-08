@@ -1,5 +1,29 @@
 # Resultados de validação
 
+## Candidata 1.1.4 — disposição vertical
+
+- 89 testes automatizados passaram, incluindo todos os 10.201 pares de inteiros de 0 a 100 e seis resoluções. Testes verificam a independência das linhas, o espaçamento entre elas e entre os dígitos de 100.
+- Prévia PNG em tamanho de 16 pixels e ampliada, gerada com os pixels do código de produção. HTML independente com as seis resoluções. Conferência visual da imagem; a barra da extensão instalada permanece pendente de avaliação pelo usuário.
+- Esta rodada altera o desenho do ícone; não foi repetida a execução nos navegadores. Os resultados da rodada 1.1.3 abaixo referem-se ao desenho horizontal anterior.
+- O mantenedor aprovou a prévia empilhada e autorizou a publicação no GitHub e o envio à Chrome Web Store em 7 de setembro de 2026. A aprovação não substitui os testes reais pendentes.
+
+## Candidata 1.1.3 — dois valores, aprovação do GitHub pendente
+
+- **88 testes automatizados passaram**, sem falhas ou ignorados. Um teste percorre **10.201 pares** de inteiros de 0 a 100, validando texto e geração do ícone. Cobertura de ordem invertida, dados ausentes/inválidos, zero, bloqueios, cache desatualizado e transições duplo/simples/ícone original.
+- Prévia executada no Chrome e no Edge: **120/120 desenhos em cada navegador**, cobrindo 20 rótulos e seis resoluções (16, 20, 24, 32, 40 e 48 px). Inspeção em tema claro e escuro. As resoluções representam os fatores 100–300%; não foi alterada a escala do Windows.
+- Popup no Edge: sucesso 10/10; 5 horas esgotadas 9/9; semanal esgotado 9/9; parcial 8/8; carregamento 8/8; falha 6/6; sem autenticação 8/8. Fonte computada preservada em 13 px. Dados explicitamente fictícios.
+- **Limitação visual:** `100|100` ocupa quase toda a largura de 16 pixels e permanece compacto. O desenho especial preserva os três dígitos e o separador; a legibilidade na barra da extensão instalada deve ser confirmada pelo usuário. A prévia não substitui instalação real, acessibilidade assistiva ou testes de sessão privada.
+- Prévia independente em `indicador-1.1.3-preview.html`, imagem comparativa em `indicador-1.1.3-preview.png` e resultado completo em `validation/automated-tests-1.1.3.txt`, junto aos pacotes. Nenhuma publicação no GitHub nesta etapa, conforme solicitado.
+
+
+## Correção 1.1.2 — Chrome e Edge padronizados
+
+- **72 testes automatizados passaram, sem falhas ou ignorados.** O teste de equivalência compara todas as chamadas do indicador em Chrome/Edge com preferências antigas diferentes; o teste de VMs confirma que ambos os contextos realmente desenharam o ícone nas abas corretas.
+- Prévia do indicador em Chrome e Edge: **48/48 desenhos com texto branco em cada navegador**, em seis resoluções. As duas capturas foram inspecionadas e mostram o mesmo desenho arredondado. Isso valida a renderização de canvas, não a barra de uma extensão instalada.
+- Prévia do popup: **10/10 verificações em cada navegador**, incluindo a remoção da linha de workspace. Estilo computado do corpo: **13 px** nos dois; a fonte foi preservada.
+- A consulta oficial de redefinições foi localizada, mas a tentativa de acesso no Chrome pela automação retornou `net::ERR_BLOCKED_BY_CLIENT`. Os campos individuais continuam desativados até confirmar uma resposta real, conforme o requisito original. O contrato e a pendência estão em [DATA_MAPPING.md](DATA_MAPPING.md).
+- Saída automatizada: `validation/automated-tests-1.1.2.txt`, junto aos ZIPs entregues. As pendências de teste da extensão instalada e de autenticação privada descritas no histórico continuam aplicáveis.
+
 ## Correção 1.1.1 — indicador no Edge
 
 - As capturas do usuário mostraram o percentual pequeno na barra do Edge. O número agora ocupa automaticamente o ícone inteiro nesse navegador, com a unidade no tooltip e no popup.
