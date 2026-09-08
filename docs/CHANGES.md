@@ -1,4 +1,13 @@
-# Alterações da candidata 1.1.0
+# Alterações
+
+## 1.1.1 — número maior na barra do Edge
+
+- Edge desenha o percentual como número grande no ícone, automaticamente. A unidade permanece no tooltip e no painel.
+- Desenho com ajuste pela largura real do texto, centralização e seis resoluções para diferentes escalas de tela.
+- Chrome mantém seu badge nativo por padrão, com opção de número maior.
+- Popup conserva a fonte da 1.1.0. Incluída prévia reproduzível do indicador em `/badge-preview`.
+
+## Histórico da candidata 1.1.0
 
 Base: `main` em `6c4ad91ee781df7c0c61d36366229083dbf1a456`, versão 1.0.0. Cópia de revisão local; nenhuma publicação na Chrome Web Store nem alteração de conta/faturamento.
 

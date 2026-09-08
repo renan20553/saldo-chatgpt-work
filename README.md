@@ -30,7 +30,8 @@ Apenas preferências não sensíveis de aparência podem ser lidas do armazename
 ## Como interpretar o painel
 
 - O badge mostra o **menor percentual restante válido** entre os limites principais; o tooltip descreve os dois valores e o determinante.
-- Texto branco explícito e fundos escuros. Se a API não existir, falhar ou reportar outra cor, o indicador é desenhado no ícone e o badge nativo é apagado. Há também uma opção manual em **Aparência e dados locais**.
+- Texto branco explícito e fundos escuros. No Edge, o número ocupa automaticamente o ícone inteiro para melhorar a leitura. O símbolo `%` permanece no tooltip e no painel. São gerados ícones para diferentes escalas de tela.
+- No Chrome, o badge nativo continua como padrão; **Aparência e dados locais → Mostrar número maior no ícone** ativa a alternativa. Ela também é usada se a API de texto branco não existir, falhar ou reportar outra cor. O badge nativo é apagado quando o número é desenhado no ícone.
 - `…`: carregamento sem leitura; `—`: indisponível; `!`: erro ou bloqueio; `~`: leitura desatualizada. Um limite vencido não é automaticamente redefinido para 100%.
 - Duração vem de `limit_window_seconds`, sem pressupor que toda janela primária dura 5 horas. O painel mostra contagem regressiva e data/hora completa no fuso do navegador.
 - Percentuais ausentes ou inválidos são indisponíveis. Zero válido continua zero. Estados explícitos de bloqueio são preservados.

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR"><meta charset="utf-8"><title>Prévia do indicador</title>
+<style>body{font:15px system-ui;background:#202123;color:white;padding:24px}table{border-spacing:20px 14px}th,td{text-align:center}canvas{width:16px;height:16px;vertical-align:middle}.large canvas{width:64px;height:64px;image-rendering:pixelated}p{max-width:680px}</style>
+<h1>Número maior no ícone</h1>
+<p>Dados fictícios. Cada indicador ocupa 16 × 16 pixels CSS. As linhas usam imagens em diferentes resoluções para a escala da tela. Esta página confere o desenho; não substitui a extensão instalada.</p>
+<table><thead><tr><th>Escala</th></tr></thead><tbody></tbody></table><p id="result" role="status">Conferindo desenhos…</p>
+<script type="module">
+import { iconPixels } from '/lib/badge.js';
+const labels = ['0%', '3%', '58%', '100%', '!', '~', '…', '—'];
+for (const label of labels) { const cell = document.createElement('th'); cell.textContent = label; document.querySelector('thead tr').append(cell); }
+let checked = 0;
+for (const size of [16, 20, 24, 32, 40, 48]) {
+  const row = document.createElement('tr'), heading = document.createElement('th'); heading.textContent = `${size / 16 * 100}%`; row.append(heading);
+  for (const label of labels) {
+    const pixels = iconPixels(label, label === '0%' || label === '3%' || label === '!' ? '#a32121' : '#08624a', size);
+    const canvas = document.createElement('canvas'); canvas.width = canvas.height = size; canvas.setAttribute('aria-label', label); canvas.getContext('2d').putImageData(pixels, 0, 0);
+    const cell = document.createElement('td'); cell.append(canvas); row.append(cell);
+    let ink = 0;
+    for (let i = 0; i < pixels.data.length; i += 4) if (pixels.data[i] > 220 && pixels.data[i + 1] > 220 && pixels.data[i + 2] > 220) ink++;
+    if (!ink) throw new Error(`Texto não desenhado: ${label}/${size}`);
+    checked++;
+  }
+  document.querySelector('tbody').append(row);
+}
+const enlarged = document.querySelector('tbody tr').cloneNode(true); enlarged.className = 'large'; enlarged.firstChild.textContent = 'Detalhe 4×';
+const sources = document.querySelectorAll('tbody tr:first-child canvas'); enlarged.querySelectorAll('canvas').forEach((canvas, i) => canvas.getContext('2d').drawImage(sources[i], 0, 0)); document.querySelector('tbody').append(enlarged);
+document.querySelector('#result').textContent = `${checked}/48 desenhos com texto branco visível.`;
+</script></html>
